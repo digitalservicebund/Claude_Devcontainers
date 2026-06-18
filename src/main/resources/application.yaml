@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: game-of-life
+
+gameoflife:
+  width: 50
+  height: 30
+  fill-probability: 0.25
+  boundary-mode: TOROIDAL
+  # seed: 42   # optional — set for deterministic, reproducible boards
