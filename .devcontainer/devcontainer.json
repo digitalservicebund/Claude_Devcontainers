@@ -17,8 +17,10 @@
 		}
 	},
 	"mounts": [
-		"source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+		"source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+		"source=gradle-cache,target=/home/vscode/.gradle,type=volume"
 	],
+	"postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.claude",
 	"containerEnv": {
 		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
 		"DISABLE_AUTOUPDATER": "1",
