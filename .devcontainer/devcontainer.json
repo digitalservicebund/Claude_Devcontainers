@@ -16,6 +16,7 @@
 			"backend": "IntelliJ"
 		}
 	},
+	"forwardPorts": [8080],
 	"mounts": [
 		"source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
 		"source=gradle-cache,target=/home/vscode/.gradle,type=volume"

@@ -26,9 +26,8 @@ public final class Grid {
 
     /** Creates an all-dead grid backed by the default {@link BooleanArrayCellStorage}. */
     public static Grid empty(int width, int height) {
-        // Validate before computing width * height so a negative product can't reach the array allocation.
         validateDimensions(width, height);
-        return new Grid(width, height, new BooleanArrayCellStorage(width * height));
+        return new Grid(width, height, new BooleanArrayCellStorage(Math.multiplyExact(width, height)));
     }
 
     private static void validateDimensions(int width, int height) {
