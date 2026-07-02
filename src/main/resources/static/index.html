@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game of Life</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      letter-spacing: 0.15em;
+      color: #4ade80;
+      text-transform: uppercase;
+    }
+
+    #canvas {
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      cursor: pointer;
+      display: block;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      background: #1a1a1a;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover { background: #2a2a2a; border-color: #555; }
+    button:active { background: #333; }
+
+    #playBtn { min-width: 80px; }
+    #playBtn.playing { color: #f87171; border-color: #f87171; }
+
+    .speed-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .speed-group label { white-space: nowrap; }
+    input[type=range] {
+      width: 90px;
+      accent-color: #4ade80;
+      cursor: pointer;
+    }
+
+    .info {
+      font-size: 0.8rem;
+      color: #555;
+      display: flex;
+      gap: 20px;
+    }
+    .info span { color: #888; }
+    .info span b { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <h1>Game of Life</h1>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="controls">
+    <button id="playBtn">Play</button>
+    <button id="stepBtn">Step</button>
+    <button id="resetBtn">Reset</button>
+    <div class="speed-group">
+      <label for="speed">Speed</label>
+      <input type="range" id="speed" min="1" max="30" value="10" />
+    </div>
+  </div>
+
+  <div class="info">
+    <span>Generation: <b id="gen">—</b></span>
+    <span>Board: <b id="size">—</b></span>
+    <span>Mode: <b id="mode">—</b></span>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const CELL = 14;
+    const GAP = 1;
+    const ALIVE_COLOR = '#4ade80';
+    const DEAD_COLOR = '#111';
+
+    let state = null;
+    let playing = false;
+    let rafId = null;
+    let lastTick = 0;
+
+    const playBtn = document.getElementById('playBtn');
+    const speedInput = document.getElementById('speed');
+
+    function intervalMs() {
+      return Math.round(1000 / Number(speedInput.value));
+    }
+
+    function render(grid) {
+      const { width, height, cells, generation, boundaryMode } = grid;
+      const step = CELL + GAP;
+
+      canvas.width = width * step + GAP;
+      canvas.height = height * step + GAP;
+
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          ctx.fillStyle = cells[y][x] ? ALIVE_COLOR : DEAD_COLOR;
+          ctx.fillRect(GAP + x * step, GAP + y * step, CELL, CELL);
+        }
+      }
+
+      document.getElementById('gen').textContent = generation;
+      document.getElementById('size').textContent = `${width} × ${height}`;
+      document.getElementById('mode').textContent = boundaryMode;
+    }
+
+    async function fetchGrid() {
+      const res = await fetch('/grid');
+      return res.json();
+    }
+
+    async function postNext() {
+      const res = await fetch('/grid/next', { method: 'POST' });
+      return res.json();
+    }
+
+    async function postReset() {
+      const res = await fetch('/grid/reset', { method: 'POST' });
+      return res.json();
+    }
+
+    async function init() {
+      state = await fetchGrid();
+      render(state);
+    }
+
+    function loop(ts) {
+      if (!playing) return;
+      if (ts - lastTick >= intervalMs()) {
+        lastTick = ts;
+        postNext().then(s => { state = s; render(s); });
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function startPlay() {
+      playing = true;
+      playBtn.textContent = 'Pause';
+      playBtn.classList.add('playing');
+      lastTick = 0;
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function stopPlay() {
+      playing = false;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('playing');
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    playBtn.addEventListener('click', () => playing ? stopPlay() : startPlay());
+
+    document.getElementById('stepBtn').addEventListener('click', async () => {
+      stopPlay();
+      state = await postNext();
+      render(state);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', async () => {
+      stopPlay();
+      state = await postReset();
+      render(state);
+    });
+
+    init();
+  </script>
+</body>
+</html>
